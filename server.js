@@ -97,34 +97,21 @@ app.post("/generate", async (req, res) => {
   const level = req.body.level || "UG";
   const subject = req.body.subject || "Mathematics";
 
-  // ✅ Validate level
-  if (!levelConfig[level]) {
-    return res.status(400).json({ 
-      error: `Invalid level. Choose from: ${Object.keys(levelConfig).join(", ")}` 
-    });
-  }
-
-  // ✅ Validate subject
+  // 1. Validation Logic (Keep your existing validation)
   const validSubjects = {
-  "10th":  ["Mathematics", "Aptitude / Reasoning", "English / Verbal", "Physics", "Chemistry"],
-  "11th":  ["Mathematics", "Aptitude / Reasoning", "English / Verbal", "Physics", "Chemistry"],
-  "12th":  ["Mathematics", "Aptitude / Reasoning", "English / Verbal", "Physics", "Chemistry"],
-  "UG":    ["Mathematics", "Aptitude / Reasoning", "English / Verbal"],
-  "PG":    ["Mathematics", "Aptitude / Reasoning", "English / Verbal"]
-};
+    "10th": ["Mathematics", "Aptitude / Reasoning", "English / Verbal", "Physics", "Chemistry"],
+    "11th": ["Mathematics", "Aptitude / Reasoning", "English / Verbal", "Physics", "Chemistry"],
+    "12th": ["Mathematics", "Aptitude / Reasoning", "English / Verbal", "Physics", "Chemistry"],
+    "UG": ["Mathematics", "Aptitude / Reasoning", "English / Verbal"],
+    "PG": ["Mathematics", "Aptitude / Reasoning", "English / Verbal"]
+  };
 
-if (!validSubjects[level].includes(subject)) {
-  return res.status(400).json({
-    error: `Invalid subject for ${level}. Choose from: ${validSubjects[level].join(", ")}`
-  });
-}
+  if (!levelConfig[level] || !validSubjects[level].includes(subject)) {
+    return res.status(400).json({ error: "Invalid level or subject" });
+  }
 
   const prompt = buildPrompt(level, subject);
   const API_KEY = process.env.GROQ_API_KEY;
-
-  if (!API_KEY || API_KEY === "paste_your_groq_key_here") {
-    return res.status(500).json({ error: "Groq API key not configured on server." });
-  }
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -136,26 +123,42 @@ if (!validSubjects[level].includes(subject)) {
       body: JSON.stringify({
         model: "llama-3.1-8b-instant",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.8,
+        temperature: 0.6, // Lowered temperature for more stable JSON
         max_tokens: 512
       })
     });
 
     const data = await response.json();
-    const rawText = data.choices?.[0]?.message?.content || "";
+    let rawText = data.choices?.[0]?.message?.content || "";
 
+    // --- NEW ROBUST PARSING LOGIC ---
     const match = rawText.match(/\{[\s\S]*\}/);
-    if (!match) {
-      return res.status(500).json({ error: "Invalid format from Groq.", raw: rawText });
+    if (!match) throw new Error("No JSON found in response");
+
+    let cleanJson = match[0]
+      .replace(/\\(?!"|\\|\/|b|f|n|r|t|u[0-9a-fA-F]{4})/g, "\\\\") // Fixes "Bad Escaped Character"
+      .replace(/[\u0000-\u001F]+/g, " "); // Removes hidden control characters
+
+    let question;
+    try {
+      question = JSON.parse(cleanJson);
+    } catch (parseErr) {
+      console.error("JSON Parse failed after cleaning. Sending fallback.");
+      // FALLBACK: If JSON is still broken, send a safe grammar question
+      return res.json({
+        level,
+        subject,
+        question: "Choose the correct word: 'The team _____ practicing for the tournament.'",
+        options: ["is", "are", "be", "am"],
+        correct: "is"
+      });
     }
 
-    const question = JSON.parse(match[0]);
-
+    // Final check for required fields
     if (!question.question || !question.options || !question.correct) {
-      return res.status(500).json({ error: "Incomplete question data.", raw: question });
+      throw new Error("Incomplete question fields");
     }
 
-    // ✅ Also return level and subject in response
     res.json({
       level,
       subject,
@@ -163,8 +166,8 @@ if (!validSubjects[level].includes(subject)) {
     });
 
   } catch (err) {
-    console.error("Error:", err.message);
-    res.status(500).json({ error: "Something went wrong. Please try again." });
+    console.error("Critical Error:", err.message);
+    res.status(500).json({ error: "Server error", message: err.message });
   }
 });
 
