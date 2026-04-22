@@ -62,64 +62,64 @@ function getSubjectInstruction(subject, level) {
 
   const instructions = {
     "Aptitude / Reasoning": isUGPG
-      ? `Generate a logical reasoning question involving one of: syllogisms, blood relations, series completion, coding-decoding, or simple ranking/ordering.
+      ? `Generate a logical reasoning question using one of: syllogisms, blood relations, series completion, coding-decoding, or ranking/ordering.
 - The question must be solvable purely by logic — no general knowledge needed.
-- Student must mentally work through 2–3 reasoning steps to arrive at the answer.
-- KEEP IT SHORT: State the entire question in 1–2 sentences maximum. No long paragraph setups.
-- Use a brief, direct scenario — e.g. "A is taller than B. B is taller than C. Who is the shortest?" style.`
-      : `Generate an aptitude or reasoning question involving one of: number series, direction sense, analogies, odd one out, or simple coding-decoding.
-- Student must think through the pattern — no guessing allowed.
-- KEEP IT SHORT: The full question must be 1–2 sentences. No long story setups.
-- Use everyday Indian contexts (school, market, family, sports) but keep it brief.`,
+- Student must combine 2–3 pieces of information to deduce the answer — it must NOT be directly stated.
+- FORMAT: Give 2–3 short factual statements (one per line), then ask a question that requires combining them.
+- GOOD EXAMPLE: "A ranks higher than B. C ranks higher than A. D ranks just below B. Who ranks second from the bottom?"
+- BAD EXAMPLE: "A is faster than B because A runs more. Why is A faster?" — answer is given in the question, NEVER do this.`
+      : `Generate an aptitude or reasoning question using one of: number series (find the next term), direction sense (final direction/position), odd one out (with a non-obvious pattern), or simple coding-decoding.
+- The answer must come from recognising a hidden pattern — not from reading the question text.
+- FORMAT: 1–2 short sentences that set up a pattern or scenario, then a direct question.
+- GOOD EXAMPLE: "In a code, MANGO is written as OCPIQ. How is APPLE written in that code?"
+- BAD EXAMPLE: "Ram walks north. He then walks north again. In which direction is he facing?" — too obvious.`,
 
     "English / Verbal": isUGPG
-      ? `Generate a verbal ability question of one of these types:
-  (a) Sentence correction — one sentence with a grammatical or meaning error, student picks the corrected version.
-  (b) Vocabulary in context — one sentence with a word used in context, student picks its correct meaning.
-  (c) Fill in the blank — one sentence with a blank, student picks the best word.
-- NO reading comprehension passages — maximum ONE sentence of context.
-- The answer must NOT be obvious — student must carefully read and eliminate distractors.
-- Total question text must be under 30 words.`
-      : `Generate an English language question of one of these types: fill in the blank (grammar-based), identify the grammatical error in a sentence, antonym or synonym in context, or one-word substitution.
-- Use age-appropriate vocabulary.
-- KEEP IT SHORT: The full question must be 1–2 sentences under 25 words.
-- Test understanding, not rote memorization of word lists.`,
+      ? `Generate a verbal ability question of ONE of these types:
+  (a) Fill in the blank — one sentence with a blank; student picks the word that fits both grammatically AND in meaning. Make the blank require understanding of tone/context, not just grammar.
+  (b) Sentence correction — one sentence with a subtle error (wrong tense, misplaced modifier, subject-verb disagreement). The error must not be immediately obvious.
+  (c) Vocabulary in context — one sentence using a slightly uncommon word; student picks the closest meaning. The word must have a plausible misleading meaning.
+- The question must be 1–2 lines only.
+- The correct answer must NOT be the one that sounds most familiar — it must require careful reading.
+- One wrong option must use a word from the sentence to trap careless readers.`
+      : `Generate an English language question of ONE of these types: fill in the blank (grammar + meaning combined), spot the error in a sentence (subtle, not obvious), antonym/synonym where the word has a secondary meaning, or one-word substitution for a precise phrase.
+- The question must be 1–2 lines only.
+- Use words that sound similar but mean differently to create plausible wrong options.
+- Test inference and understanding — NOT rote memory of vocabulary lists.`,
 
     "Analytical Thinking": isUGPG
-      ? `Generate a critical reasoning question of one of these types:
-  (a) Argument strengthening or weakening — ONE short argument sentence + 4 options.
-  (b) Assumption identification — a short conclusion is given (1 sentence), student finds the hidden assumption.
-  (c) Logical deduction — 2 short statements given, student picks what must be true.
-- Student must evaluate logic and structure, not recall any facts.
-- KEEP IT SHORT: The entire setup must be 1–2 sentences maximum. No long scenarios or paragraphs.`
-      : `Generate a logical deduction question:
-  (a) A set of 2–3 short statements and student must identify which conclusion follows, OR
-  (b) A Venn diagram word problem in 1–2 sentences (e.g. "20 students like cricket, 15 like football, 8 like both. How many like only cricket?"), OR
-  (c) A simple data comparison question with 2–3 numbers given inline.
-- Keep numbers simple — the challenge is in the logic, not arithmetic.
-- KEEP IT SHORT: Full question must be under 35 words.`,
+      ? `Generate a critical reasoning question of ONE of these types:
+  (a) Assumption identification — give a 1–2 line argument/conclusion; student identifies the unstated assumption that MUST be true for the conclusion to hold.
+  (b) Argument weakening — give a 1–2 line argument; student picks the option that most weakens it (not just contradicts it — must attack the core logic).
+  (c) Logical deduction — give exactly 2 statements; student picks what MUST be true (not possibly true, not probably true — MUST).
+- The answer must require going ONE logical step beyond what is written.
+- BANNED: Questions where the correct answer is just a restatement of the premise.
+- One wrong option must be something that is POSSIBLY true but not necessarily true — this is the key trap.`
+      : `Generate a logical deduction or analytical question of ONE of these types:
+  (a) Venn diagram word problem — give 3 numbers (total, overlap, one group) and ask for the missing value. e.g. "Of 40 students, 25 play cricket, 20 play football, and 10 play both. How many play neither?"
+  (b) Statement-conclusion — give 2 short statements; student picks which conclusion logically follows (must follow, not just might follow).
+  (c) Ranking/arrangement — give 3–4 comparison statements; student finds a specific position.
+- Numbers must be simple but the logic must require 2 steps.
+- BANNED: Questions where the answer is visible by reading one statement alone.`,
 
-    "Mathematics": `Generate a mathematics WORD PROBLEM.
-
-ALLOWED TOPICS ONLY (pick one):
-- Percentages (successive discounts, reverse percentage, percent change)
-- Profit & Loss (marked price, discount chains, overall profit)
-- Ratio & Proportion (mixture problems, partnership profit splits)
-- Time, Speed & Distance (relative speed, trains, average speed traps)
-- Time & Work (combined work, pipes and cisterns)
-- Simple & Compound Interest (find principal or rate given final amount)
-- Number System (LCM/HCF word problems, divisibility, remainders)
+    "Mathematics": `Generate a mathematics WORD PROBLEM on ONE of these topics:
+- Percentages (reverse percentage, percent change, successive discounts)
+- Profit & Loss (marked price, discount chains, overall profit %)
+- Ratio & Proportion (mixture, partnership profit split)
+- Time, Speed & Distance (relative speed, average speed trap)
+- Time & Work (combined work rate, pipes and cisterns)
+- Simple & Compound Interest (find principal or rate from final amount)
+- Number System (LCM/HCF application, remainder problems)
 - Averages (weighted average, find the missing value)
-- Basic Probability (coins, dice, cards — with a twist)
-- Basic Geometry (area and perimeter word problems ONLY — no proofs, no theorems)
+- Probability (coins/dice/cards with a non-obvious twist)
 
 STRICT RULES:
-- Must be a real-world word problem — NOT a direct formula application.
-- Student must perform at least 2 logical/calculation steps to get the answer.
-- NO trigonometry, NO integration, NO differentiation, NO coordinate geometry, NO vectors.
-- This question must be solvable by ANY stream student — no stream-specific knowledge required.
-- Include one distractor option that represents a very common calculation mistake.
-- KEEP IT SHORT: State the problem in 1–2 sentences maximum (under 40 words). No long story setups.`
+- Real-world scenario — NOT a direct formula plug-in.
+- Student must perform exactly 2 calculation steps — no more, no less.
+- NO trigonometry, vectors, coordinate geometry, calculus.
+- Solvable by any stream student (Science/Commerce/Arts).
+- The problem must be stated in 2–3 lines (under 45 words).
+- Include one distractor option that is the result of a common single-step mistake (e.g. forgetting to subtract, using simple instead of compound interest).`
   };
 
   return instructions[subject] || instructions["Aptitude / Reasoning"];
@@ -153,19 +153,39 @@ ${subjectInstruction}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 QUESTION LENGTH RULES (mandatory)
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-- The question text must be SHORT — maximum 2 sentences or 40 words.
-- Student must be able to READ the question in under 10 seconds.
-- The remaining 20 seconds is for THINKING and answering.
-- DO NOT write long paragraphs, research paper excerpts, or story-style setups.
-- If the question needs context, give it in ONE short sentence only.
+- Question must be 2–3 lines long — short enough to read in 10 seconds, deep enough to require 20 seconds of thinking.
+- DO NOT write long paragraphs or story-style setups.
+- Every word must serve a purpose — no filler sentences.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━
+QUESTION QUALITY RULES (mandatory)
+━━━━━━━━━━━━━━━━━━━━━━━━━
+- The correct answer must NEVER appear — even partially — in the question text.
+- The student must go at least ONE logical step beyond what is written to reach the answer.
+- A student who skims the question and picks the most familiar-sounding option must get it WRONG.
+- A student who reads carefully and thinks must get it RIGHT.
+- BANNED patterns (never generate these):
+  → "According to the above, which is true?" — answer is stated directly
+  → "X happens because of Y. Why does X happen?" — circular, answer is given
+  → Any option that is a direct copy of a phrase from the question
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 DISTRACTOR DESIGN RULES (mandatory)
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-- All 4 options must look plausible at first glance — no obviously silly options.
-- At least 2 options must represent common mistakes, misconceptions, or partial answers.
-- The correct answer must NOT always be the longest or most detailed option.
-- Every option must make a student pause and think before eliminating.
+- One wrong option MUST use words directly from the question to trap careless readers.
+- One wrong option must represent the most common reasoning mistake for this question type.
+- The correct answer must use different phrasing from the question — student must have reasoned to it, not spotted it.
+- All 4 options must look equally plausible at first glance.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━
+SELF-CHECK BEFORE OUTPUTTING (mandatory)
+━━━━━━━━━━━━━━━━━━━━━━━━━
+Before writing your JSON, ask yourself:
+1. Can a student answer this by just re-reading the question without thinking? → If YES, discard and rewrite.
+2. Does reaching the correct answer require at least one logical/calculation step not stated in the question? → Must be YES.
+3. Would a student who skims and picks the familiar-sounding option get it wrong? → Must be YES.
+4. Is the question 2–3 lines only? → Must be YES.
+If any check fails, rewrite the question before outputting.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 OUTPUT FORMAT
@@ -234,10 +254,10 @@ app.post("/generate", async (req, res) => {
         "Authorization": `Bearer ${API_KEY}`
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: "llama-3.3-70b-versatile",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 700
+        temperature: 0.85,
+        max_tokens: 800
       })
     });
 
