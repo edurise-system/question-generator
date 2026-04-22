@@ -62,35 +62,42 @@ function getSubjectInstruction(subject, level) {
 
   const instructions = {
     "Aptitude / Reasoning": isUGPG
-      ? `Generate a logical reasoning question involving one of: syllogisms, seating arrangement, blood relations, series completion, coding-decoding, or input-output puzzles.
+      ? `Generate a logical reasoning question involving one of: syllogisms, blood relations, series completion, coding-decoding, or simple ranking/ordering.
 - The question must be solvable purely by logic — no general knowledge needed.
 - Student must mentally work through 2–3 reasoning steps to arrive at the answer.
-- The scenario or setup must reflect real-world professional or academic contexts (offices, committees, rankings, schedules).`
+- KEEP IT SHORT: State the entire question in 1–2 sentences maximum. No long paragraph setups.
+- Use a brief, direct scenario — e.g. "A is taller than B. B is taller than C. Who is the shortest?" style.`
       : `Generate an aptitude or reasoning question involving one of: number series, direction sense, analogies, odd one out, or simple coding-decoding.
 - Student must think through the pattern — no guessing allowed.
-- Keep language simple but the logic must require careful thinking.
-- Use everyday Indian contexts (school, market, family, sports).`,
+- KEEP IT SHORT: The full question must be 1–2 sentences. No long story setups.
+- Use everyday Indian contexts (school, market, family, sports) but keep it brief.`,
 
     "English / Verbal": isUGPG
-      ? `Generate a verbal ability question of one of these types: reading comprehension inference (short 3-4 line passage), para jumble (4 sentences), sentence correction (grammar + meaning combined), or vocabulary in context (word meaning derived from usage in a sentence).
+      ? `Generate a verbal ability question of one of these types:
+  (a) Sentence correction — one sentence with a grammatical or meaning error, student picks the corrected version.
+  (b) Vocabulary in context — one sentence with a word used in context, student picks its correct meaning.
+  (c) Fill in the blank — one sentence with a blank, student picks the best word.
+- NO reading comprehension passages — maximum ONE sentence of context.
 - The answer must NOT be obvious — student must carefully read and eliminate distractors.
-- Avoid straightforward grammar rules — test comprehension and inference.`
-      : `Generate an English language question of one of these types: fill in the blank (grammar-based), identify the grammatical error, antonym or synonym in context, or one-word substitution.
+- Total question text must be under 30 words.`
+      : `Generate an English language question of one of these types: fill in the blank (grammar-based), identify the grammatical error in a sentence, antonym or synonym in context, or one-word substitution.
 - Use age-appropriate vocabulary.
-- The question should test understanding, not rote memorization of word lists.`,
+- KEEP IT SHORT: The full question must be 1–2 sentences under 25 words.
+- Test understanding, not rote memorization of word lists.`,
 
     "Analytical Thinking": isUGPG
       ? `Generate a critical reasoning question of one of these types:
-  (a) Data sufficiency — give two statements, ask if they are sufficient to answer a question
-  (b) Argument strengthening or weakening — short argument + 4 options
-  (c) Assumption identification — a conclusion is given, student must find the hidden assumption
+  (a) Argument strengthening or weakening — ONE short argument sentence + 4 options.
+  (b) Assumption identification — a short conclusion is given (1 sentence), student finds the hidden assumption.
+  (c) Logical deduction — 2 short statements given, student picks what must be true.
 - Student must evaluate logic and structure, not recall any facts.
-- Passage/setup must be 2–4 lines maximum.`
-      : `Generate a logical deduction or data interpretation question:
-  (a) A small 2x2 or 2x3 table with a question, OR
-  (b) A Venn diagram word problem (e.g. students who like cricket, football, both), OR
-  (c) A set of 2–3 statements and student must identify which conclusion follows.
-- Keep numbers simple — the challenge is in the logic, not arithmetic.`,
+- KEEP IT SHORT: The entire setup must be 1–2 sentences maximum. No long scenarios or paragraphs.`
+      : `Generate a logical deduction question:
+  (a) A set of 2–3 short statements and student must identify which conclusion follows, OR
+  (b) A Venn diagram word problem in 1–2 sentences (e.g. "20 students like cricket, 15 like football, 8 like both. How many like only cricket?"), OR
+  (c) A simple data comparison question with 2–3 numbers given inline.
+- Keep numbers simple — the challenge is in the logic, not arithmetic.
+- KEEP IT SHORT: Full question must be under 35 words.`,
 
     "Mathematics": `Generate a mathematics WORD PROBLEM.
 
@@ -107,11 +114,12 @@ ALLOWED TOPICS ONLY (pick one):
 - Basic Geometry (area and perimeter word problems ONLY — no proofs, no theorems)
 
 STRICT RULES:
-- Must be a real-world word problem or scenario — NOT a direct formula application.
+- Must be a real-world word problem — NOT a direct formula application.
 - Student must perform at least 2 logical/calculation steps to get the answer.
 - NO trigonometry, NO integration, NO differentiation, NO coordinate geometry, NO vectors.
-- This question must be solvable by ANY stream student (Science, Commerce, Arts) — no stream-specific knowledge required.
-- Include one distractor option that represents a very common calculation mistake students make.`
+- This question must be solvable by ANY stream student — no stream-specific knowledge required.
+- Include one distractor option that represents a very common calculation mistake.
+- KEEP IT SHORT: State the problem in 1–2 sentences maximum (under 40 words). No long story setups.`
   };
 
   return instructions[subject] || instructions["Aptitude / Reasoning"];
@@ -141,6 +149,15 @@ Difficulty   : ${meta.difficulty}
 SUBJECT TASK: ${subject}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 ${subjectInstruction}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━
+QUESTION LENGTH RULES (mandatory)
+━━━━━━━━━━━━━━━━━━━━━━━━━
+- The question text must be SHORT — maximum 2 sentences or 40 words.
+- Student must be able to READ the question in under 10 seconds.
+- The remaining 20 seconds is for THINKING and answering.
+- DO NOT write long paragraphs, research paper excerpts, or story-style setups.
+- If the question needs context, give it in ONE short sentence only.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 DISTRACTOR DESIGN RULES (mandatory)
@@ -238,7 +255,7 @@ app.post("/generate", async (req, res) => {
       throw new Error("Incomplete question structure from AI");
     }
 
-    // ✅ Client-side duplicate check support — send back question text too
+    // ✅ Send back response
     res.json({
       level: finalLevel,
       subject: finalSubject,
@@ -250,7 +267,7 @@ app.post("/generate", async (req, res) => {
 
   } catch (err) {
     console.error("Error:", err.message);
-   res.status(500).json({ error: "Failed to generate question. Please try again." });
+    res.status(500).json({ error: "Failed to generate question. Please try again." });
   }
 });
 
