@@ -57,7 +57,8 @@ const levelMeta = {
 };
 
 // ✅ Build subject-specific instructions
-function getSubjectInstruction(subject, level) {
+// NEW: accepts medium param — adds Kannada instruction when needed
+function getSubjectInstruction(subject, level, medium = "English") {
   const isUGPG = ["UG", "PG"].includes(level);
 
   const instructions = {
@@ -125,10 +126,48 @@ STRICT RULES:
   return instructions[subject] || instructions["Aptitude / Reasoning"];
 }
 
-// ✅ Master prompt builder
-function buildPrompt(level, subject, previousQuestions = []) {
+// ✅ NEW: Kannada language instruction block
+// Only injected when medium === "Kannada" and level === "10th"
+function getKannadaInstruction(subject) {
+  // For Verbal/English subject — switch to Kannada language skills instead
+  const isVerbal = subject === "English / Verbal";
+
+  if (isVerbal) {
+    return `
+━━━━━━━━━━━━━━━━━━━━━━━━━
+LANGUAGE & SUBJECT OVERRIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ KANNADA MEDIUM STUDENT — This is a Kannada medium 10th class student.
+- Since this is Kannada medium, replace "English / Verbal" with a KANNADA LANGUAGE question instead.
+- Write a question testing Kannada grammar, Kannada vocabulary, or Kannada comprehension.
+- The entire question, all 4 options, and the explanation MUST be written in Kannada script (ಕನ್ನಡ ಲಿಪಿ).
+- Numbers and math symbols stay as-is (1, 2, 3, %, ÷ etc.).
+- Use simple, clear Kannada — appropriate for a 10th class Karnataka state board student.
+- Do NOT use English words anywhere in the question or options.
+`;
+  }
+
+  return `
+━━━━━━━━━━━━━━━━━━━━━━━━━
+LANGUAGE INSTRUCTION
+━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ KANNADA MEDIUM STUDENT — Write the entire question, all 4 options, and the explanation in Kannada script (ಕನ್ನಡ ಲಿಪಿ).
+- Numbers, math symbols, and proper nouns (names like Ram, Priya) may remain in their original form.
+- Use simple, clear Kannada appropriate for a 10th class Karnataka state board student.
+- Do NOT mix English and Kannada — the full output must be in Kannada only.
+- The JSON keys ("question", "options", "correct", "explanation") must remain in English.
+`;
+}
+
+// ✅ Master prompt builder — now accepts medium param
+function buildPrompt(level, subject, previousQuestions = [], medium = "English") {
   const meta = levelMeta[level] || levelMeta["UG"];
-  const subjectInstruction = getSubjectInstruction(subject, level);
+  const subjectInstruction = getSubjectInstruction(subject, level, medium);
+
+  // NEW: only add Kannada block if 10th + Kannada medium
+  const kannadaBlock = (medium === "Kannada" && level === "10th")
+    ? getKannadaInstruction(subject)
+    : "";
 
   const exclusionBlock = previousQuestions.length > 0
     ? `\n⛔ DO NOT repeat, rephrase, or closely resemble ANY of these already-asked questions in this session:\n${previousQuestions.slice(-15).map((q, i) => `${i + 1}. ${q}`).join("\n")}\n`
@@ -149,7 +188,7 @@ Difficulty   : ${meta.difficulty}
 SUBJECT TASK: ${subject}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 ${subjectInstruction}
-
+${kannadaBlock}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 QUESTION LENGTH RULES (mandatory)
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -201,9 +240,10 @@ Return ONLY a valid JSON object. No explanation outside JSON, no markdown, no pr
 ${exclusionBlock}`;
 }
 
-// ✅ MAIN ROUTE
+// ✅ MAIN ROUTE — now reads medium from request body
 app.post("/generate", async (req, res) => {
-  let { level, subject, previousQuestions = [] } = req.body;
+  // NEW: destructure medium from body, default to "English"
+  let { level, subject, previousQuestions = [], medium = "English" } = req.body;
 
   // --- Normalize level ---
   if (level) {
@@ -238,12 +278,16 @@ app.post("/generate", async (req, res) => {
   const allowedSubjects = isUGPG ? ugpgSubjects : schoolSubjects;
   const finalSubject = allowedSubjects.includes(subject) ? subject : allowedSubjects[0];
 
+  // NEW: Normalize medium — only "Kannada" is valid for 10th, else always "English"
+  const finalMedium = (medium === "Kannada" && finalLevel === "10th") ? "Kannada" : "English";
+
   // --- Sanitize previousQuestions ---
   const safePrevious = Array.isArray(previousQuestions)
     ? previousQuestions.filter(q => typeof q === "string" && q.trim().length > 0)
     : [];
 
-  const prompt = buildPrompt(finalLevel, finalSubject, safePrevious);
+  // NEW: pass finalMedium to buildPrompt
+  const prompt = buildPrompt(finalLevel, finalSubject, safePrevious, finalMedium);
   const API_KEY = process.env.GROQ_API_KEY;
 
   try {
@@ -256,7 +300,8 @@ app.post("/generate", async (req, res) => {
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.85,
+        // NEW: slightly higher temperature for Kannada to avoid repetitive phrasing
+        temperature: finalMedium === "Kannada" ? 0.9 : 0.85,
         max_tokens: 800
       })
     });
@@ -275,10 +320,32 @@ app.post("/generate", async (req, res) => {
       throw new Error("Incomplete question structure from AI");
     }
 
-    // ✅ Send back response
+    // NEW: Kannada validation — check if Kannada script is present when expected
+    // Unicode range for Kannada: \u0C80–\u0CFF
+    if (finalMedium === "Kannada") {
+      const hasKannadaScript = /[\u0C80-\u0CFF]/.test(question.question);
+      if (!hasKannadaScript) {
+        // AI returned English despite instruction — flag it so frontend can show warning
+        console.warn("Kannada requested but AI returned English. Flagging response.");
+        return res.json({
+          level: finalLevel,
+          subject: finalSubject,
+          medium: "English",           // tell frontend it fell back
+          kannadaFallback: true,        // NEW flag
+          question: question.question,
+          options: question.options,
+          correct: question.correct,
+          explanation: question.explanation || "No explanation provided."
+        });
+      }
+    }
+
+    // ✅ Send back response — now includes medium in response
     res.json({
       level: finalLevel,
       subject: finalSubject,
+      medium: finalMedium,             // NEW: echo medium back to frontend
+      kannadaFallback: false,
       question: question.question,
       options: question.options,
       correct: question.correct,
